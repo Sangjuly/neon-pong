@@ -20,7 +20,7 @@ addEventListener('keyup',e=>{if(e.code==='ArrowUp'||e.code==='KeyW')setKey('up',
 addEventListener('blur',()=>{keys={up:false,down:false,targetY:null};dragging=false;sendInput()});
 function bindTouch(id,direction){const b=$(id);b.onpointerdown=e=>{e.preventDefault();b.setPointerCapture?.(e.pointerId);setKey(direction,true)};for(const event of ['pointerup','pointercancel','pointerleave'])b.addEventListener(event,e=>{e.preventDefault();setKey(direction,false)})}bindTouch('touchUp','up');bindTouch('touchDown','down');
 const canvas=$('court'),ctx=canvas.getContext('2d');
-function dragTo(event){if(!latestState||playerIndex===null)return;const rect=canvas.getBoundingClientRect();const worldY=(event.clientY-rect.top)*(latestState.height/rect.height);keys.targetY=worldY-latestState.paddleHeight/2;sendInput()}
+function dragTo(event){if(!latestState||playerIndex===null)return;const rect=canvas.getBoundingClientRect();const scaleY=latestState.height/rect.height;const worldY=(event.clientY-rect.top)*scaleY;const touchOffset=event.pointerType==='touch'?Math.min(150,90*scaleY):0;keys.targetY=worldY-latestState.paddleHeight/2-touchOffset;sendInput()}
 canvas.addEventListener('pointerdown',event=>{if(!latestState||latestState.status!=='playing')return;event.preventDefault();dragging=true;canvas.setPointerCapture?.(event.pointerId);dragTo(event)});
 canvas.addEventListener('pointermove',event=>{if(!dragging)return;event.preventDefault();dragTo(event)});
 function endDrag(event){if(!dragging)return;event.preventDefault();dragging=false;keys.targetY=null;sendInput()}
