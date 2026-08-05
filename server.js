@@ -57,6 +57,7 @@ function makeRoom(code, hostId) {
     countdownEndsAt: 0,
     winner: null,
     serveAt: 0,
+    rallyStartedAt: 0,
     lastTick: Date.now()
   };
 }
@@ -169,6 +170,7 @@ function updateRoom(room, dt, now) {
     if (now >= room.countdownEndsAt) {
       room.status = 'playing';
       room.ball = initialBall();
+      room.rallyStartedAt = now;
     }
     return;
   }
@@ -193,15 +195,23 @@ function updateRoom(room, dt, now) {
   }
 
   const ball = room.ball;
+  const currentSpeed = Math.hypot(ball.vx, ball.vy);
+  if (currentSpeed > 0 && currentSpeed < MAX_SPEED) {
+    const acceleratedSpeed = Math.min(MAX_SPEED, currentSpeed * (1 + 0.018 * dt));
+    ball.vx *= acceleratedSpeed / currentSpeed;
+    ball.vy *= acceleratedSpeed / currentSpeed;
+  }
   ball.x += ball.vx * dt;
   ball.y += ball.vy * dt;
 
   if (ball.y - BALL_RADIUS <= 0 && ball.vy < 0) {
     ball.y = BALL_RADIUS;
     ball.vy *= -1;
+    io.to(room.code).emit('sound', 'wall');
   } else if (ball.y + BALL_RADIUS >= HEIGHT && ball.vy > 0) {
     ball.y = HEIGHT - BALL_RADIUS;
     ball.vy *= -1;
+    io.to(room.code).emit('sound', 'wall');
   }
 
   const paddleX = [PADDLE_MARGIN, WIDTH - PADDLE_MARGIN - PADDLE_W];
@@ -216,16 +226,19 @@ function updateRoom(room, dt, now) {
       ball.vx = Math.cos(angle) * speed * (i === 0 ? 1 : -1);
       ball.vy = Math.sin(angle) * speed;
       ball.x = i === 0 ? paddleX[i] + PADDLE_W + BALL_RADIUS : paddleX[i] - BALL_RADIUS;
+      io.to(room.code).emit('sound', 'paddle');
     }
   }
 
   if (ball.x + BALL_RADIUS < 0 || ball.x - BALL_RADIUS > WIDTH) {
     const scorer = ball.x < 0 ? 1 : 0;
     room.scores[scorer]++;
+    io.to(room.code).emit('sound', 'score');
     if (room.scores[scorer] >= WIN_SCORE) {
       room.status = 'finished';
       room.winner = scorer;
       room.ball = { ...ball, vx: 0, vy: 0 };
+      io.to(room.code).emit('sound', 'finish');
     } else {
       resetAfterPoint(room, scorer === 0 ? 1 : 0);
     }
