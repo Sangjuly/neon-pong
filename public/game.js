@@ -1,5 +1,13 @@
 const socket=io(),$=id=>document.getElementById(id);
 const screens=['lobby','waiting','game'];let playerIndex=null,roomCode='',latestState=null,keys={up:false,down:false,targetY:null},dragging=false;
+let audioContext=null,soundEnabled=true,musicTimer=null,musicStep=0;
+function ensureAudio(){if(!soundEnabled)return null;if(!audioContext)audioContext=new(window.AudioContext||window.webkitAudioContext)();if(audioContext.state==='suspended')audioContext.resume();return audioContext}
+function tone(frequency,duration=.08,volume=.055,type='sine',delay=0){const ac=ensureAudio();if(!ac)return;const start=ac.currentTime+delay,osc=ac.createOscillator(),gain=ac.createGain();osc.type=type;osc.frequency.setValueAtTime(frequency,start);gain.gain.setValueAtTime(volume,start);gain.gain.exponentialRampToValueAtTime(.0001,start+duration);osc.connect(gain).connect(ac.destination);osc.start(start);osc.stop(start+duration)}
+function playSound(kind){if(!soundEnabled)return;if(kind==='paddle')tone(190,.07,.075,'square');if(kind==='wall')tone(360,.045,.035);if(kind==='score'){tone(520,.12,.07,'triangle');tone(760,.16,.055,'triangle',.09)}if(kind==='finish')[392,523,659,784].forEach((n,i)=>tone(n,.3,.06,'triangle',i*.11))}
+function startMusic(){if(musicTimer||!soundEnabled)return;const notes=[110,138.59,164.81,207.65,164.81,138.59];musicTimer=setInterval(()=>{if(latestState?.status==='playing')tone(notes[musicStep++%notes.length],.32,.014)},380)}
+function stopMusic(){clearInterval(musicTimer);musicTimer=null}
+function unlockAudio(){ensureAudio();startMusic()}
+addEventListener('pointerdown',unlockAudio,{once:true});
 function show(name){screens.forEach(id=>$(id).classList.toggle('hidden',id!==name))}
 function enterRoom(r,waiting){if(!r?.ok)return;playerIndex=r.player;roomCode=r.code;latestState=r.state;$('waitingCode').textContent=roomCode;$('gameCode').textContent=roomCode;show(waiting?'waiting':'game');renderState(r.state)}
 socket.on('connect',()=>{$('connection').classList.add('online');$('connection').innerHTML='<span></span> 온라인'});
@@ -7,7 +15,9 @@ socket.on('disconnect',()=>{$('connection').classList.remove('online');$('connec
 socket.on('opponentJoined',()=>show('game'));
 socket.on('opponentLeft',()=>{resetLocal();$('lobbyError').textContent='상대가 나가서 게임이 종료되었습니다.'});
 socket.on('state',state=>{latestState=state;if(state.status!=='waiting')show('game');renderState(state)});
-$('createBtn').onclick=()=>{$('lobbyError').textContent='';socket.emit('createRoom',r=>enterRoom(r,true))};
+socket.on('sound',playSound);
+$('soundToggle').onclick=()=>{soundEnabled=!soundEnabled;$('soundToggle').textContent=soundEnabled?'♫ ON':'♫ OFF';$('soundToggle').classList.toggle('off',!soundEnabled);if(soundEnabled)unlockAudio();else stopMusic()};
+$('createBtn').onclick=()=>{unlockAudio();$('lobbyError').textContent='';socket.emit('createRoom',r=>enterRoom(r,true))};
 $('joinForm').onsubmit=e=>{e.preventDefault();const code=$('roomInput').value.trim().toUpperCase();if(code.length!==6)return $('lobbyError').textContent='6자리 방 코드를 입력해 주세요.';socket.emit('joinRoom',code,r=>{if(!r?.ok)return $('lobbyError').textContent=r?.error||'참가할 수 없습니다.';enterRoom(r,false)})};
 $('roomInput').oninput=e=>e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
 $('copyCode').onclick=async()=>{try{await navigator.clipboard.writeText(roomCode);const label=$('copyCode').querySelector('small');label.textContent='복사됨!';setTimeout(()=>label.textContent='복사',1200)}catch{}};
