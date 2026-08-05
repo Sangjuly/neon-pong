@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#070b18">
+  <title>NEON PONG — 실시간 1대1</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="brand"><span class="brand-dot"></span>NEON <b>PONG</b></div>
+      <div id="connection" class="connection"><span></span> 연결 중</div>
+    </header>
+
+    <section id="lobby" class="panel lobby">
+      <div class="eyebrow">SERVER-AUTHORITATIVE MULTIPLAYER</div>
+      <h1>친구와 펼치는<br><em>실시간 핑퐁.</em></h1>
+      <p class="lead">방을 만들고 6자리 코드를 공유하세요.<br>설치도, 가입도 필요 없습니다.</p>
+      <div class="actions">
+        <button id="createBtn" class="primary">새 방 만들기 <span>→</span></button>
+        <div class="divider"><span>또는</span></div>
+        <form id="joinForm">
+          <label for="roomInput">방 코드로 참가</label>
+          <div class="join-row">
+            <input id="roomInput" maxlength="6" autocomplete="off" spellcheck="false" placeholder="ABC123" aria-label="6자리 방 코드">
+            <button type="submit">참가</button>
+          </div>
+          <p id="lobbyError" class="error" role="alert"></p>
+        </form>
+      </div>
+      <div class="features"><span>⚡ 낮은 지연</span><span>⌨ 키보드</span><span>◎ 모바일 터치</span></div>
+    </section>
+
+    <section id="waiting" class="panel waiting hidden">
+      <div class="pulse-ring"><span>VS</span></div>
+      <div class="eyebrow">PRIVATE MATCH</div>
+      <h2>상대를 기다리는 중</h2>
+      <p>친구에게 아래 코드를 공유하세요.</p>
+      <button id="copyCode" class="room-code" title="클릭하여 복사"><span id="waitingCode"></span><small>복사</small></button>
+      <button id="cancelBtn" class="text-button">나가기</button>
+    </section>
+
+    <section id="game" class="game hidden">
+      <div class="game-top">
+        <div><span class="tiny">ROOM</span> <strong id="gameCode"></strong></div>
+        <div id="gameStatus" class="game-status">상대 연결됨</div>
+        <button id="leaveBtn" class="text-button">나가기</button>
+      </div>
+      <div class="scoreboard">
+        <div id="youLabel" class="player-label active"><span></span>YOU</div>
+        <div class="score"><b id="leftScore">0</b><i>:</i><b id="rightScore">0</b></div>
+        <div id="opponentLabel" class="player-label">OPPONENT<span></span></div>
+      </div>
+      <div id="courtWrap" class="court-wrap">
+        <canvas id="court" width="960" height="540"></canvas>
+        <div id="countdown" class="countdown hidden"></div>
+        <div id="result" class="result hidden">
+          <div class="eyebrow">MATCH OVER</div>
+          <h2 id="resultTitle"></h2>
+          <p id="resultScore"></p>
+          <button id="againBtn" class="primary">다시 하기</button>
+        </div>
+      </div>
+      <p class="controls-help">코트를 드래그하거나 <kbd>W</kbd><kbd>S</kbd> 또는 <kbd>↑</kbd><kbd>↓</kbd> 로 패들 이동</p>
+      <div class="touch-controls" aria-label="터치 조작">
+        <button id="touchUp" aria-label="위로 이동">▲</button>
+        <button id="touchDown" aria-label="아래로 이동">▼</button>
+      </div>
+    </section>
+  </main>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/game.js"></script>
+</body>
+</html>
